@@ -53,10 +53,14 @@ describe("PaymentGateway", function () {
   describe("Merchant Registration", function () {
     it("Should allow merchant registration", async function () {
       const { gateway, merchant1 } = await loadFixture(deployPaymentGatewayFixture);
-      
-      await expect(gateway.connect(merchant1).registerMerchant("Test Shop"))
+
+      const tx = await gateway.connect(merchant1).registerMerchant("Test Shop");
+      const receipt = await tx.wait();
+      const block = await ethers.provider.getBlock(receipt.blockNumber);
+
+      await expect(tx)
         .to.emit(gateway, "MerchantRegistered")
-        .withArgs(merchant1.address, "Test Shop", await time.latest() + 1);
+        .withArgs(merchant1.address, "Test Shop", block.timestamp);
 
       const merchant = await gateway.getMerchant(merchant1.address);
       expect(merchant.businessName).to.equal("Test Shop");

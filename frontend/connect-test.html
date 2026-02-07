@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetaMask Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1> MetaMask Connection Test</h1>
+    <p>This is a simple test page to debug MetaMask connection</p>
+
+    <button onclick="testBasicConnection()">Test Basic Connection</button>
+    <button onclick="testEthereumObject()">Check Ethereum Object</button>
+    <button onclick="clearAndReload()">Clear & Reload</button>
+
+    <div id="status"></div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+
+        function testEthereumObject() {
+            console.log('Testing ethereum object...');
+            if (typeof window.ethereum === 'undefined') {
+                showStatus('window.ethereum is undefined. MetaMask not detected.', 'error');
+                return;
+            }
+
+            showStatus(`  MetaMask detected!<br>
+                Provider: ${window.ethereum.isMetaMask ? 'MetaMask' : 'Unknown'}<br>
+                Chain ID: ${window.ethereum.chainId}<br>
+                Selected Address: ${window.ethereum.selectedAddress || 'None'}`, 'success');
+
+            console.log('Ethereum object:', window.ethereum);
+        }
+
+        async function testBasicConnection() {
+            showStatus(' Connecting to MetaMask...', 'info');
+            console.log('Starting connection test...');
+
+            if (!window.ethereum) {
+                showStatus('MetaMask not installed', 'error');
+                return;
+            }
+
+            try {
+                console.log('Requesting accounts...');
+
+                // Simple direct request
+                const accounts = await window.ethereum.request({
+                    method: 'eth_requestAccounts'
+                });
+
+                console.log('Accounts:', accounts);
+
+                if (accounts.length > 0) {
+                    showStatus(`  Connected successfully!<br>
+                        Address: ${accounts[0]}<br>
+                        Chain ID: ${window.ethereum.chainId}`, 'success');
+                } else {
+                    showStatus('No accounts found', 'error');
+                }
+
+            } catch (error) {
+                console.error('Connection error:', error);
+
+                let errorMessage = 'Connection failed:<br>';
+
+                if (error.code === 4001) {
+                    errorMessage += 'User rejected the request';
+                } else if (error.code === -32002) {
+                    errorMessage += 'Request already pending. Please open MetaMask and approve.';
+                } else if (error.code === -32603) {
+                    errorMessage += 'Internal error. Try: <br>' +
+                        '1. Disable other wallet extensions<br>' +
+                        '2. Update MetaMask<br>' +
+                        '3. Try a different browser';
+                } else {
+                    errorMessage += `${error.message}<br>Code: ${error.code}`;
+                }
+
+                showStatus(errorMessage, 'error');
+            }
+        }
+
+        function clearAndReload() {
+            localStorage.clear();
+            sessionStorage.clear();
+            location.reload();
+        }
+
+        // Auto-check on load
+        window.addEventListener('load', () => {
+            testEthereumObject();
+        });
+    </script>
+</body>
+</html>

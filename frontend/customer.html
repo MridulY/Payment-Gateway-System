@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Gateway - Make Payment</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .payment-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .payment-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .detail-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .amount-display {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .wallet-status {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+            margin-right: 8px;
+        }
+
+        .status-indicator.connected {
+            background: #4caf50;
+        }
+
+        .steps {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .step {
+            display: flex;
+            align-items: start;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .tx-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .tx-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-card">
+        <h1> Complete Payment</h1>
+        <p class="subtitle">Secure blockchain payment processing</p>
+
+        <div id="alertContainer"></div>
+
+        <div class="wallet-status">
+            <span id="statusIndicator" class="status-indicator"></span>
+            <span id="walletAddress">Not connected</span>
+        </div>
+
+        <div class="payment-details">
+            <div class="detail-row">
+                <span class="detail-label">Merchant:</span>
+                <span class="detail-value" id="merchantName">Loading...</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Payment ID:</span>
+                <span class="detail-value" id="displayPaymentId">-</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Token:</span>
+                <span class="detail-value">USDT</span>
+            </div>
+            <div class="amount-display" id="amountDisplay">- USDT</div>
+            <div class="detail-row">
+                <span class="detail-label">Expires:</span>
+                <span class="detail-value" id="expiryDisplay">-</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Payment ID</label>
+            <input type="text" id="paymentIdInput" placeholder="Enter payment ID" />
+        </div>
+
+        <button id="loadPaymentBtn" class="btn btn-primary">Load Payment</button>
+        <button id="connectWalletBtn" class="btn btn-primary" style="display: none;">Connect Wallet</button>
+        <button id="approveBtn" class="btn btn-primary" style="display: none;">1. Approve Tokens</button>
+        <button id="payBtn" class="btn btn-primary" style="display: none;">2. Complete Payment</button>
+
+        <div class="steps" id="stepsContainer" style="display: none;">
+            <div class="step">
+                <span class="step-number">1</span>
+                <span class="step-text">First, approve the payment gateway to spend your USDT tokens</span>
+            </div>
+            <div class="step">
+                <span class="step-number">2</span>
+                <span class="step-text">Then, complete the payment transaction</span>
+            </div>
+            <div class="step">
+                <span class="step-number">3</span>
+                <span class="step-text">Wait for blockchain confirmation</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="customer.js"></script>
+</body>
+</html>
